@@ -1,0 +1,45 @@
+<?php
+
+/**
+ * @file
+ * Contains df_tools_blocks.module.
+ */
+
+use Drupal\Core\Render\Element;
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_form_alter().
+ */
+function df_tools_blocks_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  if (preg_match('/^block_content_\X*_edit_form$/', $form_id)) {
+    // Add a 'copy' button to all custom blocks edit forms.
+    $form['actions']['copy'] = [
+      '#type' => 'submit',
+      '#value' => t('Copy'),
+      '#submit' => ['df_tools_blocks_block_content_replicate'],
+      '#weight' => 9
+    ];
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function df_tools_blocks_form_panels_ipe_block_plugin_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+}
+
+function df_tools_blocks_block_content_replicate($form, FormStateInterface $form_state) {
+  // Retrieve block content entity from form_state.
+  $entity = $form_state->getFormObject()->getEntity();
+  // Extract a few values from the entity.
+  $block_info = $entity->get('info')->value;
+  $block_id = $entity->id();
+  // Replicate the block content entity.
+  if (\Drupal::service('df_tools_blocks.copier')->makeCopy($entity)) {
+    $message = t('Block Content: copied @info [id:@id]', ['@info' => $block_info, '@id' => $block_id]);
+    \Drupal::logger('df_tools_blocks')->info($message);
+    drupal_set_message($message, 'status');
+  }
+  // Redirect to block list comes free!
+}
